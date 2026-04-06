@@ -1,0 +1,728 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║       🤖 MULTI-AGENT AI SYSTEM — COMPLETE REBUILD GUIDE                     ║
+║          Everything you need to rebuild from scratch on a new GCP ID        ║
+║          Includes all errors faced + fixes + correct commands only          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋  WHAT YOU ARE BUILDING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  A multi-agent AI system with:
+  - Google ADK orchestrator + 3 sub-agents (task, calendar, notes)
+  - Firestore as permanent database
+  - Notion MCP integration
+  - Google Calendar MCP integration
+  - FastAPI REST API with 14 endpoints
+  - Deployed on Google Cloud Run
+  - Live dashboard at /
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔑  STEP 0 — THINGS TO COLLECT BEFORE STARTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  You need these before running any command:
+
+  1. GCP Project ID
+     → Go to console.cloud.google.com → create new project → copy Project ID
+
+  2. Gemini API Key
+     → Go to aistudio.google.com → Get API Key → copy key (starts with AIza)
+     ⚠️  IMPORTANT: Use keys from DIFFERENT Google accounts (different Gmail)
+         Keys from the same Gmail/project share the same quota pool
+         If you run out of quota, wait until midnight Pacific (5:30 AM IST)
+
+  3. Notion API Token
+     → Go to notion.so/my-integrations → New Integration → copy token (starts with secret_)
+
+  4. Notion Page ID
+     → Open any Notion page → look at URL → copy the 32-char ID after last /
+     → Example: notion.so/My-Page-abc123def456  →  Page ID = abc123def456
+
+  5. GitHub Personal Access Token (for pushing code)
+     → github.com/settings/tokens → Generate new token (classic)
+     → Check: repo (full access) → copy token (starts with ghp_)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 1 — GCP SETUP (run in Cloud Shell)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  # Set your project
+  gcloud config set project YOUR_PROJECT_ID
+
+  # Enable all required APIs in one command
+  gcloud services enable \
+    cloudbuild.googleapis.com \
+    storage.googleapis.com \
+    containerregistry.googleapis.com \
+    run.googleapis.com \
+    firestore.googleapis.com \
+    --project YOUR_PROJECT_ID
+
+  # Create Firestore database (Native mode)
+  gcloud firestore databases create \
+    --location=asia-south1 \
+    --project YOUR_PROJECT_ID
+
+  ⚠️  ERROR YOU MAY FACE:
+  "Firestore already exists" → safe to ignore, already created
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 2 — IAM PERMISSIONS (CRITICAL — do this first, saves hours)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ⚠️  THIS IS THE MOST IMPORTANT STEP
+      If you skip this, /tasks and /notes will give Internal Server Error
+      after deployment even though everything works locally
+
+  # Get project number first (NOT project ID — they are different)
+  PROJECT_NUMBER=$(gcloud projects describe YOUR_PROJECT_ID --format='value(projectNumber)')
+  echo "Project number: $PROJECT_NUMBER"
+
+  # Grant ALL required permissions to compute service account
+  gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+    --role="roles/datastore.user"
+
+  gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+    --role="roles/datastore.owner"
+
+  gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+    --role="roles/firebase.admin"
+
+  gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+    --role="roles/storage.admin"
+
+  gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+    --role="roles/cloudbuild.builds.builder"
+
+  gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+    --role="roles/iam.serviceAccountTokenCreator"
+
+  gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+    --role="roles/editor"
+
+  ⚠️  ERRORS YOU MAY FACE AND FIXES:
+
+  ERROR: "roles/firestore.user is not supported"
+  FIX  : Use roles/datastore.owner instead (Firestore uses Datastore roles)
+
+  ERROR: "roles/firebase.admin~ invalid role name"
+  FIX  : You accidentally added a ~ at the end, retype the command carefully
+
+  ERROR: "Service account -compute@developer.gserviceaccount.com does not exist"
+  FIX  : Your PROJECT_NUMBER variable is empty. Run this instead:
+         PROJECT_NUMBER=YOUR_ACTUAL_NUMBER (e.g. 887740208824)
+         Then rerun the binding commands
+
+  ❌  WRONG WAY (caused error):
+  PROJECT_NUMBER=$(gcloud projects describe MY_PROJECT --format='value(887740208824)')
+  → This uses the number as the format field name which is wrong
+
+  ✅  CORRECT WAY:
+  PROJECT_NUMBER=$(gcloud projects describe MY_PROJECT --format='value(projectNumber)')
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 3 — PROJECT SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  mkdir -p ~/multi-agent-system
+  cd ~/multi-agent-system
+  python3 -m venv .venv
+  source .venv/bin/activate
+  pip install google-adk google-cloud-firestore python-dotenv notion-client \
+    google-auth google-api-python-client fastapi uvicorn pydantic --break-system-packages
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 4 — CREATE .env FILE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  cat > ~/multi-agent-system/.env << 'EOF'
+  GOOGLE_API_KEY=AIza...your_single_best_gemini_key
+  GOOGLE_CLOUD_PROJECT=your-gcp-project-id
+  GOOGLE_CLOUD_LOCATION=us-central1
+  NOTION_API_TOKEN=secret_...your_notion_token
+  NOTION_PAGE_ID=your_notion_page_id
+  EOF
+
+  ⚠️  CRITICAL LESSONS LEARNED ON API KEYS:
+  - Do NOT add 15-16 API keys thinking rotation will help
+  - Keys from the same GCP project share the SAME quota pool
+  - Rotating same-project keys does nothing
+  - Free tier limit: ~50 requests/day per project per model
+  - If quota exhausted: wait until midnight Pacific (5:30 AM IST) for reset
+  - Solution: Use ONE good key, send messages slowly (1 per minute)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 5 — CREATE FOLDER STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  mkdir -p ~/multi-agent-system/agents
+  mkdir -p ~/multi-agent-system/tools
+  mkdir -p ~/multi-agent-system/orchestrator
+  touch ~/multi-agent-system/agents/__init__.py
+  touch ~/multi-agent-system/tools/__init__.py
+  touch ~/multi-agent-system/orchestrator/__init__.py
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 6 — CREATE tools/firestore_tool.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  cat > ~/multi-agent-system/tools/firestore_tool.py << 'PYEOF'
+  import os
+  from datetime import datetime, timezone
+  from google.cloud import firestore
+
+  PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "your-project-id")
+
+  def get_db():
+      return firestore.Client(project=PROJECT_ID)
+
+  def save_task(task_id, title, description, due_date, status="pending"):
+      try:
+          db = get_db()
+          data = {
+              "task_id": task_id, "title": title, "description": description,
+              "due_date": due_date, "status": status,
+              "created_at": datetime.now(timezone.utc).isoformat(),
+              "updated_at": datetime.now(timezone.utc).isoformat()
+          }
+          db.collection("tasks").document(task_id).set(data)
+          return {"success": True, "task_id": task_id, "message": f"Task '{title}' saved to Firestore"}
+      except Exception as e:
+          return {"success": False, "error": str(e)}
+
+  def get_task(task_id):
+      try:
+          db = get_db()
+          doc = db.collection("tasks").document(task_id).get()
+          if doc.exists:
+              return {"success": True, "task": doc.to_dict()}
+          return {"success": False, "message": f"Task {task_id} not found"}
+      except Exception as e:
+          return {"success": False, "error": str(e)}
+
+  def list_tasks(status_filter=None):
+      try:
+          db = get_db()
+          col = db.collection("tasks")
+          if status_filter:
+              col = col.where("status", "==", status_filter)
+          tasks = [doc.to_dict() for doc in col.stream()]
+          return {"success": True, "tasks": tasks, "count": len(tasks)}
+      except Exception as e:
+          return {"success": False, "tasks": [], "count": 0, "error": str(e)}
+
+  def update_task_status(task_id, new_status):
+      try:
+          db = get_db()
+          ref = db.collection("tasks").document(task_id)
+          if not ref.get().exists:
+              return {"success": False, "message": f"Task {task_id} not found"}
+          ref.update({"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()})
+          return {"success": True, "message": f"Task {task_id} updated to '{new_status}'"}
+      except Exception as e:
+          return {"success": False, "error": str(e)}
+
+  def save_note(note_id, title, content, tags=None):
+      try:
+          db = get_db()
+          data = {
+              "note_id": note_id, "title": title, "content": content,
+              "tags": tags or [],
+              "created_at": datetime.now(timezone.utc).isoformat()
+          }
+          db.collection("notes").document(note_id).set(data)
+          return {"success": True, "note_id": note_id, "message": f"Note '{title}' saved to Firestore"}
+      except Exception as e:
+          return {"success": False, "error": str(e)}
+
+  def list_notes():
+      try:
+          db = get_db()
+          notes = [doc.to_dict() for doc in db.collection("notes").stream()]
+          return {"success": True, "notes": notes, "count": len(notes)}
+      except Exception as e:
+          return {"success": False, "notes": [], "count": 0, "error": str(e)}
+  PYEOF
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 7 — CREATE tools/calendar_tool.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ⚠️  CRITICAL LESSON: Google Calendar OAuth is BLOCKED in hackathon GCP projects
+      The org policy blocks OAuth app verification and service account key creation
+      SOLUTION: Use Firestore as fallback for calendar events (works perfectly)
+
+  cat > ~/multi-agent-system/tools/calendar_tool.py << 'PYEOF'
+  import os, uuid
+  from datetime import datetime, timedelta, timezone
+
+  def create_calendar_event(title, description, start_time, duration_minutes=60):
+      try:
+          from googleapiclient.discovery import build
+          from google.auth import default
+          credentials, _ = default(scopes=["https://www.googleapis.com/auth/calendar"])
+          service = build("calendar", "v3", credentials=credentials)
+          start_dt = datetime.fromisoformat(start_time)
+          end_dt = start_dt + timedelta(minutes=duration_minutes)
+          event = {
+              "summary": title, "description": description,
+              "start": {"dateTime": start_dt.isoformat(), "timeZone": "Asia/Kolkata"},
+              "end": {"dateTime": end_dt.isoformat(), "timeZone": "Asia/Kolkata"}
+          }
+          result = service.events().insert(calendarId="primary", body=event).execute()
+          return {"success": True, "event_id": result["id"], "message": f"Event '{title}' created in Google Calendar"}
+      except Exception as e:
+          # Firestore fallback — always works even without Calendar OAuth
+          from google.cloud import firestore
+          db = firestore.Client(project=os.environ.get("GOOGLE_CLOUD_PROJECT"))
+          event_id = f"event_{str(uuid.uuid4())[:8]}"
+          db.collection("calendar_events").document(event_id).set({
+              "event_id": event_id, "title": title, "description": description,
+              "start_time": start_time, "duration_minutes": duration_minutes,
+              "status": "scheduled", "created_at": datetime.now(timezone.utc).isoformat()
+          })
+          return {"success": True, "event_id": event_id, "message": f"Event '{title}' scheduled and stored in Firestore", "fallback": True}
+
+  def list_upcoming_events(max_results=10):
+      try:
+          from googleapiclient.discovery import build
+          from google.auth import default
+          credentials, _ = default(scopes=["https://www.googleapis.com/auth/calendar"])
+          service = build("calendar", "v3", credentials=credentials)
+          now = datetime.utcnow().isoformat() + "Z"
+          result = service.events().list(
+              calendarId="primary", timeMin=now,
+              maxResults=max_results, singleEvents=True, orderBy="startTime"
+          ).execute()
+          events = [{"id": e["id"], "title": e["summary"], "start": e["start"].get("dateTime", e["start"].get("date"))} for e in result.get("items", [])]
+          return {"success": True, "events": events, "count": len(events)}
+      except Exception as e:
+          from google.cloud import firestore
+          db = firestore.Client(project=os.environ.get("GOOGLE_CLOUD_PROJECT"))
+          events = [doc.to_dict() for doc in db.collection("calendar_events").stream()]
+          return {"success": True, "events": events, "count": len(events), "fallback": True}
+  PYEOF
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 8 — CREATE tools/notion_tool.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  cat > ~/multi-agent-system/tools/notion_tool.py << 'PYEOF'
+  import os
+  from notion_client import Client
+
+  def get_notion():
+      return Client(auth=os.environ.get("NOTION_API_TOKEN"))
+
+  def create_notion_page(title, content):
+      try:
+          notion = get_notion()
+          page_id = os.environ.get("NOTION_PAGE_ID")
+          result = notion.pages.create(
+              parent={"page_id": page_id},
+              properties={"title": {"title": [{"text": {"content": title}}]}},
+              children=[{"object": "block", "type": "paragraph",
+                         "paragraph": {"rich_text": [{"type": "text", "text": {"content": content}}]}}]
+          )
+          return {"success": True, "page_id": result["id"], "url": result.get("url", ""), "message": f"Notion page '{title}' created"}
+      except Exception as e:
+          return {"success": False, "error": str(e)}
+
+  def list_notion_pages():
+      try:
+          notion = get_notion()
+          page_id = os.environ.get("NOTION_PAGE_ID")
+          result = notion.blocks.children.list(block_id=page_id)
+          pages = []
+          for block in result.get("results", []):
+              if block.get("type") == "child_page":
+                  pages.append({"id": block["id"], "title": block["child_page"]["title"]})
+          return {"success": True, "pages": pages, "count": len(pages)}
+      except Exception as e:
+          return {"success": False, "pages": [], "count": 0, "error": str(e)}
+  PYEOF
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 9 — TEST MCP TOOLS LOCALLY BEFORE ANYTHING ELSE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  cd ~/multi-agent-system
+  source .venv/bin/activate
+  export $(grep -v '^#' .env | xargs)
+
+  python3 -c "
+  from tools.firestore_tool import save_task, list_tasks
+  import uuid
+  r = save_task(f'task_{str(uuid.uuid4())[:8]}', 'Test Task', 'Testing Firestore', '2026-06-20', 'pending')
+  print('Firestore:', r)
+  print('Tasks:', list_tasks()['count'])
+  "
+
+  python3 -c "
+  from tools.notion_tool import create_notion_page, list_notion_pages
+  r = create_notion_page('Test Page', 'Testing Notion MCP')
+  print('Notion:', r)
+  "
+
+  python3 -c "
+  from tools.calendar_tool import create_calendar_event, list_upcoming_events
+  r = create_calendar_event('Test Event', 'Testing Calendar', '2026-06-20T10:00:00', 60)
+  print('Calendar:', r)
+  "
+
+  ✅ All 3 should show success:True before moving to next step
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 10 — CREATE orchestrator/agent.py (SIMPLE VERSION — NO KEY ROTATION)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ⚠️  DO NOT add key rotation code — it causes patch errors with ADK
+      The ADK LLM class name changes between versions
+      Key rotation from same project does nothing anyway
+
+  cat > ~/multi-agent-system/orchestrator/agent.py << 'PYEOF'
+  import sys, os
+  sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+  from dotenv import load_dotenv
+  load_dotenv()
+
+  from google.adk.agents import Agent
+  from agents.task_agent import task_agent
+  from agents.calendar_agent import calendar_agent
+  from agents.notes_agent import notes_agent
+
+  root_agent = Agent(
+      name="orchestrator",
+      model="gemini-2.0-flash-lite",
+      description="Primary orchestrator that coordinates task, calendar, and notes agents.",
+      instruction="""You are the main AI assistant coordinating three sub-agents:
+  1. task_agent — handles creating, listing, updating tasks in Firestore
+  2. calendar_agent — handles calendar events stored in Firestore
+  3. notes_agent — handles saving notes to Firestore and Notion
+  Route requests to the correct sub-agent. All data is permanently stored in Firestore.
+  """,
+      sub_agents=[task_agent, calendar_agent, notes_agent]
+  )
+  PYEOF
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 11 — CREATE requirements.txt
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  cat > ~/multi-agent-system/requirements.txt << 'EOF'
+  google-adk>=1.0.0
+  google-cloud-firestore>=2.0.0
+  python-dotenv>=1.0.0
+  notion-client>=2.0.0
+  google-auth>=2.0.0
+  google-api-python-client>=2.0.0
+  fastapi>=0.100.0
+  uvicorn>=0.20.0
+  pydantic>=2.0.0
+  EOF
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 12 — CREATE Dockerfile
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  cat > ~/multi-agent-system/Dockerfile << 'EOF'
+  FROM python:3.11-slim
+  WORKDIR /app
+  COPY requirements.txt .
+  RUN pip install --no-cache-dir -r requirements.txt
+  COPY . .
+  ENV PORT=8080
+  EXPOSE 8080
+  CMD ["python3", "main.py"]
+  EOF
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 13 — TEST LOCALLY BEFORE DEPLOYING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  cd ~/multi-agent-system
+  source .venv/bin/activate
+  export $(grep -v '^#' .env | xargs)
+
+  python3 main.py &
+  sleep 4
+
+  curl http://localhost:8080/health
+  curl http://localhost:8080/tasks
+  curl http://localhost:8080/notes
+  curl http://localhost:8080/events
+  curl http://localhost:8080/notion
+
+  # If all return data — kill and deploy
+  pkill -f "python3 main.py"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 14 — DEPLOY TO CLOUD RUN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  # Create .gcloudignore FIRST to reduce upload size
+  # Without this it uploads 574MB and may fail
+  cat > ~/multi-agent-system/.gcloudignore << 'EOF'
+  .git
+  .venv
+  __pycache__
+  *.pyc
+  *.pyo
+  .env
+  *.log
+  .adk
+  *.db
+  node_modules
+  EOF
+
+  cd ~/multi-agent-system
+
+  # Build image
+  gcloud builds submit \
+    --tag gcr.io/YOUR_PROJECT_ID/multi-agent-system \
+    --project YOUR_PROJECT_ID
+
+  # Deploy to Cloud Run
+  gcloud run deploy multi-agent-system \
+    --image gcr.io/YOUR_PROJECT_ID/multi-agent-system \
+    --platform managed \
+    --region asia-south1 \
+    --allow-unauthenticated \
+    --memory 2Gi \
+    --cpu 2 \
+    --timeout 300 \
+    --set-env-vars="GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID,GOOGLE_CLOUD_LOCATION=us-central1,NOTION_API_TOKEN=$(grep NOTION_API_TOKEN .env | cut -d= -f2),NOTION_PAGE_ID=$(grep NOTION_PAGE_ID .env | cut -d= -f2)" \
+    --project YOUR_PROJECT_ID
+
+  # Get your live URL
+  SERVICE_URL=$(gcloud run services describe multi-agent-system \
+    --region asia-south1 \
+    --project YOUR_PROJECT_ID \
+    --format 'value(status.url)')
+  echo "YOUR LIVE URL: $SERVICE_URL"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  STEP 15 — VERIFY DEPLOYMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  curl $SERVICE_URL/health
+  curl $SERVICE_URL/tasks
+  curl $SERVICE_URL/notes
+  curl $SERVICE_URL/events
+  curl $SERVICE_URL/notion
+
+  ⚠️  IF /tasks or /notes gives "Internal Server Error":
+  → The IAM permissions from Step 2 were not applied
+  → Run the IAM commands from Step 2 again with your project number
+  → Wait 30 seconds then test again — no redeploy needed
+  → IAM changes take effect immediately without redeployment
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌  ALL ERRORS FACED + ROOT CAUSE + CORRECT FIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ERROR 1: Patch warning: module 'google.adk.models.google_llm' has no attribute 'GoogleLLM'
+  CAUSE  : Tried to patch ADK internals for key rotation — wrong class name
+  FIX    : Remove all key rotation code. Use simple orchestrator/agent.py (Step 10)
+
+  ERROR 2: quotaId: GenerateRequestsPerDayPerProjectPerModel-FreeTier
+  CAUSE  : Daily Gemini API quota exhausted for that GCP project
+  FIX    : Wait until midnight Pacific (5:30 AM IST) for quota reset
+           OR use Firestore directly without ADK for demo data
+
+  ERROR 3: Calendar error: HttpError 403 insufficient authentication scopes
+  CAUSE  : ADC credentials don't have calendar scope
+  FIX    : Use Firestore fallback in calendar_tool.py (Step 7 code)
+
+  ERROR 4: ERROR: Key creation is not allowed on this service account
+  CAUSE  : Hackathon GCP org policy disables service account key creation
+  FIX    : Skip service account keys — use ADC (Application Default Credentials)
+           Cloud Run uses ADC automatically via compute service account
+
+  ERROR 5: Access blocked: This app tried to access sensitive info
+  CAUSE  : OAuth consent screen not verified for Calendar API
+  FIX    : Click Advanced → Go to app (unsafe) → Allow
+           OR use Firestore fallback (recommended)
+
+  ERROR 6: gcloud builds submit ERROR 403 storage.objects.get access denied
+  CAUSE  : Compute service account missing storage permissions
+  FIX    : Run IAM commands from Step 2 (storage.admin role)
+
+  ERROR 7: ERROR: Image 'gcr.io/PROJECT/multi-agent-system' not found
+  CAUSE  : gcloud builds submit failed silently before this error
+  FIX    : Fix storage permissions first, then rebuild image
+
+  ERROR 8: /tasks and /notes giving Internal Server Error after deployment
+  CAUSE  : Cloud Run compute service account missing Firestore permissions
+  FIX    : Add roles/datastore.owner and roles/datastore.user (Step 2)
+           No redeploy needed — IAM takes effect immediately
+
+  ERROR 9: roles/firestore.user is not supported for this resource
+  CAUSE  : Wrong role name — Firestore uses Datastore roles
+  FIX    : Use roles/datastore.owner instead of roles/firestore.user
+
+  ERROR 10: Service account -compute@developer.gserviceaccount.com does not exist
+  CAUSE  : PROJECT_NUMBER variable was empty (wrong format= used)
+  FIX    : Use --format='value(projectNumber)' not --format='value(YOUR_NUMBER)'
+
+  ERROR 11: error: src refspec main does not match any
+  CAUSE  : git commit was never created before git push
+  FIX    : Run git add -A then git commit -m "message" before git push
+
+  ERROR 12: ! [rejected] main -> main (fetch first)
+  CAUSE  : Remote repo has commits that local doesn't have
+  FIX    : git push origin main --force
+
+  ERROR 13: Authentication failed for github.com
+  CAUSE  : Using GitHub password instead of Personal Access Token
+  FIX    : Generate token at github.com/settings/tokens
+           git remote set-url origin https://USERNAME:TOKEN@github.com/USER/REPO.git
+
+  ERROR 14: 574MB upload size causing builds submit to fail/timeout
+  CAUSE  : .venv folder being uploaded to Cloud Build
+  FIX    : Create .gcloudignore file (Step 14) before running builds submit
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡  QUICK SEED DATA COMMAND (populate Firestore without needing Gemini API)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  cd ~/multi-agent-system
+  source .venv/bin/activate
+  export $(grep -v '^#' .env | xargs)
+
+  python3 << 'PYEOF'
+  import uuid
+  from tools.firestore_tool import save_task, save_note
+  from tools.calendar_tool import create_calendar_event
+  from tools.notion_tool import create_notion_page
+
+  save_task(f"task_{str(uuid.uuid4())[:8]}", "Build Multi-Agent System", "Implement ADK orchestrator with sub-agents", "2026-06-20", "completed")
+  save_task(f"task_{str(uuid.uuid4())[:8]}", "Integrate MCP Tools", "Connect Firestore, Notion and Calendar MCP", "2026-06-18", "completed")
+  save_task(f"task_{str(uuid.uuid4())[:8]}", "Deploy to Cloud Run", "Deploy FastAPI backend to Cloud Run", "2026-06-19", "pending")
+  save_task(f"task_{str(uuid.uuid4())[:8]}", "Submit Hackathon Project", "Final submission to hackathon portal", "2026-06-20", "pending")
+  save_note(f"note_{str(uuid.uuid4())[:8]}", "System Architecture", "Orchestrator routes to task_agent, calendar_agent, notes_agent using Firestore", ["architecture","adk"])
+  save_note(f"note_{str(uuid.uuid4())[:8]}", "MCP Integration Summary", "Firestore: tasks/notes. Calendar: events. Notion: external pages", ["mcp","integration"])
+  create_calendar_event("Project Review Meeting", "Review before submission", "2026-06-18T15:00:00", 60)
+  create_calendar_event("Hackathon Final Submission", "Submit to portal", "2026-06-20T10:00:00", 30)
+  create_notion_page("Hackathon Project Summary", "Multi-agent system with ADK, Firestore, Notion MCP, Calendar MCP on Cloud Run")
+  create_notion_page("Deployment Notes", "Cloud Run URL serves /health /tasks /notes /chat. Firestore stores all data.")
+  print("All seed data created successfully!")
+  PYEOF
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  PUSH TO GITHUB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  cd ~/multi-agent-system
+  git config --global user.email "your@gmail.com"
+  git config --global user.name "yourusername"
+  git init
+
+  # Set remote with token embedded (replace TOKEN and USERNAME/REPO)
+  git remote add origin https://USERNAME:ghp_YOUR_TOKEN@github.com/USERNAME/REPO.git
+
+  # Create .gitignore
+  cat > .gitignore << 'EOF'
+  .env
+  .venv/
+  __pycache__/
+  *.pyc
+  *.log
+  .adk/
+  *.db
+  service-account.json
+  EOF
+
+  git add -A
+  git commit -m "feat: multi-agent AI system with ADK Firestore Notion MCP Calendar MCP"
+  git branch -M main
+  git push -u origin main
+
+  # If rejected (remote has commits):
+  git push origin main --force
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅  FINAL VERIFICATION COMMAND
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  python3 << 'PYEOF'
+  import urllib.request, json, datetime
+
+  BASE = "YOUR_CLOUD_RUN_URL"   # Replace with your actual URL
+  REPO = "https://github.com/YOUR_USERNAME/YOUR_REPO"
+
+  endpoints = [("Health","/health"),("Tasks","/tasks"),("Notes","/notes"),("Events","/events"),("Notion","/notion")]
+
+  print()
+  print("=" * 65)
+  print("   MULTI-AGENT AI SYSTEM — LIVE STATUS CHECK")
+  print("=" * 65)
+  print(f"  Checked at : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+  print()
+
+  all_ok = True
+  for name, path in endpoints:
+      try:
+          req = urllib.request.Request(BASE + path, headers={"User-Agent": "Check/1.0"})
+          with urllib.request.urlopen(req, timeout=10) as r:
+              data = json.loads(r.read())
+              val = data.get("status","").upper() if name=="Health" else f"{data.get('count','?')} records"
+              print(f"  OK   {name:<20} -> {val}")
+      except Exception as e:
+          print(f"  FAIL {name:<20} -> {e}")
+          all_ok = False
+
+  print()
+  print(f"  Dashboard  : {BASE}/")
+  print(f"  API Docs   : {BASE}/docs")
+  print(f"  GitHub     : {REPO}")
+  print()
+  print("  ALL SYSTEMS OPERATIONAL!" if all_ok else "  SOME ENDPOINTS NEED ATTENTION")
+  print("=" * 65)
+  PYEOF
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋  CORRECT ORDER — DO NOT SKIP ANY STEP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Step 0  → Collect all tokens and IDs before starting
+  Step 1  → GCP setup + enable APIs + create Firestore
+  Step 2  → IAM permissions (DO THIS EARLY — saves hours of debugging)
+  Step 3  → Create project folder + venv + install packages
+  Step 4  → Create .env with keys
+  Step 5  → Create folder structure
+  Step 6  → Create firestore_tool.py
+  Step 7  → Create calendar_tool.py (with Firestore fallback)
+  Step 8  → Create notion_tool.py
+  Step 9  → Test all 3 MCP tools locally (verify before continuing)
+  Step 10 → Create orchestrator/agent.py (simple, no rotation)
+  Step 11 → Create requirements.txt
+  Step 12 → Create Dockerfile
+  Step 13 → Test locally with python3 main.py
+  Step 14 → Create .gcloudignore then deploy to Cloud Run
+  Step 15 → Verify all endpoints working
+  Seed    → Populate Firestore with demo data
+  GitHub  → Push to repo
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  GOLDEN RULES — NEVER BREAK THESE                                           ║
+║                                                                              ║
+║  1. Do IAM permissions BEFORE deployment (Step 2)                           ║
+║  2. Create .gcloudignore BEFORE gcloud builds submit                        ║
+║  3. Use roles/datastore.owner NOT roles/firestore.user                      ║
+║  4. Use --format='value(projectNumber)' to get project number               ║
+║  5. Never add key rotation code to orchestrator                             ║
+║  6. Calendar OAuth is blocked — always use Firestore fallback               ║
+║  7. git add + git commit BEFORE git push                                    ║
+║  8. Use GitHub token (ghp_...) NOT your GitHub password                     ║
+║  9. If push rejected: git push origin main --force                          ║
+║  10. IAM changes take effect immediately — no redeploy needed               ║
+╚══════════════════════════════════════════════════════════════════════════════╝

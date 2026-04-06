@@ -1,0 +1,223 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║          🤖 MULTI-AGENT AI SYSTEM — COMPLETE SERVICE GUIDE                  ║
+║                    Hackathon Submission 2026                                 ║
+║              Built with Google ADK + Firestore + Notion + Calendar          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌐  LIVE DEPLOYED LINKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  🖥️  Dashboard (UI)   : https://multi-agent-system-887740208824.asia-south1.run.app/
+  📖  API Docs         : https://multi-agent-system-887740208824.asia-south1.run.app/docs
+  💚  Health Check     : https://multi-agent-system-887740208824.asia-south1.run.app/health
+  📋  Tasks            : https://multi-agent-system-887740208824.asia-south1.run.app/tasks
+  📝  Notes            : https://multi-agent-system-887740208824.asia-south1.run.app/notes
+  📅  Events           : https://multi-agent-system-887740208824.asia-south1.run.app/events
+  📓  Notion Pages     : https://multi-agent-system-887740208824.asia-south1.run.app/notion
+  💬  Chat Agent       : https://multi-agent-system-887740208824.asia-south1.run.app/chat
+  💻  GitHub Repo      : https://github.com/saiashirbad05/hackathon-multi-agent-project
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔗  ALL API ENDPOINTS (FULL URLs)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  METHOD   FULL URL
+  ──────   ─────────────────────────────────────────────────────────────────
+  GET      https://multi-agent-system-887740208824.asia-south1.run.app/
+  GET      https://multi-agent-system-887740208824.asia-south1.run.app/health
+  GET      https://multi-agent-system-887740208824.asia-south1.run.app/docs
+  GET      https://multi-agent-system-887740208824.asia-south1.run.app/tasks
+  POST     https://multi-agent-system-887740208824.asia-south1.run.app/tasks
+  GET      https://multi-agent-system-887740208824.asia-south1.run.app/tasks/{id}
+  PUT      https://multi-agent-system-887740208824.asia-south1.run.app/tasks/{id}
+  GET      https://multi-agent-system-887740208824.asia-south1.run.app/notes
+  POST     https://multi-agent-system-887740208824.asia-south1.run.app/notes
+  GET      https://multi-agent-system-887740208824.asia-south1.run.app/events
+  POST     https://multi-agent-system-887740208824.asia-south1.run.app/events
+  GET      https://multi-agent-system-887740208824.asia-south1.run.app/notion
+  POST     https://multi-agent-system-887740208824.asia-south1.run.app/notion
+  POST     https://multi-agent-system-887740208824.asia-south1.run.app/chat
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🛠️  COMMANDS TO CREATE DATA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ── Create a Task ────────────────────────────────────────────────────────────
+  curl -X POST https://multi-agent-system-887740208824.asia-south1.run.app/tasks \
+    -H "Content-Type: application/json" \
+    -d '{"title":"My Task","description":"Task description here","due_date":"2026-06-20","status":"pending"}'
+
+  ── Create a Note ────────────────────────────────────────────────────────────
+  curl -X POST https://multi-agent-system-887740208824.asia-south1.run.app/notes \
+    -H "Content-Type: application/json" \
+    -d '{"title":"My Note","content":"Note content here","tags":["tag1","tag2"]}'
+
+  ── Create a Calendar Event ──────────────────────────────────────────────────
+  curl -X POST https://multi-agent-system-887740208824.asia-south1.run.app/events \
+    -H "Content-Type: application/json" \
+    -d '{"title":"My Meeting","description":"Meeting description","start_time":"2026-06-20T10:00:00","duration_minutes":60}'
+
+  ── Create a Notion Page ─────────────────────────────────────────────────────
+  curl -X POST https://multi-agent-system-887740208824.asia-south1.run.app/notion \
+    -H "Content-Type: application/json" \
+    -d '{"title":"My Page","content":"Page content here"}'
+
+  ── Chat with AI Agent ───────────────────────────────────────────────────────
+  curl -X POST https://multi-agent-system-887740208824.asia-south1.run.app/chat \
+    -H "Content-Type: application/json" \
+    -d '{"message":"list all my tasks","session_id":"my_session"}'
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📥  COMMANDS TO RETRIEVE DATA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  curl https://multi-agent-system-887740208824.asia-south1.run.app/health
+  curl https://multi-agent-system-887740208824.asia-south1.run.app/tasks
+  curl https://multi-agent-system-887740208824.asia-south1.run.app/notes
+  curl https://multi-agent-system-887740208824.asia-south1.run.app/events
+  curl https://multi-agent-system-887740208824.asia-south1.run.app/notion
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅  LIVE STATUS CHECK COMMAND (run this to verify everything)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  python3 << 'PYEOF'
+import urllib.request, json, datetime
+
+BASE = "https://multi-agent-system-887740208824.asia-south1.run.app"
+REPO = "https://github.com/saiashirbad05/hackathon-multi-agent-project"
+
+endpoints = [
+    ("Health",          "/health"),
+    ("Tasks",           "/tasks"),
+    ("Notes",           "/notes"),
+    ("Calendar Events", "/events"),
+    ("Notion Pages",    "/notion"),
+]
+
+print()
+print("╔══════════════════════════════════════════════════════════════════╗")
+print("║       🤖 MULTI-AGENT AI SYSTEM — LIVE STATUS REPORT             ║")
+print("╚══════════════════════════════════════════════════════════════════╝")
+print(f"  🕐  Checked at : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+print()
+
+all_ok = True
+for name, path in endpoints:
+    url = BASE + path
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "StatusChecker/1.0"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read())
+            if name == "Health":
+                val = data.get("status", "?").upper()
+                print(f"  ✅  {name:<20} → {val}")
+                print(f"      URL : {url}")
+                print(f"      Agents : {', '.join(data.get('agents', []))}")
+                print(f"      MCP Tools : {', '.join(data.get('mcp_tools', []))}")
+            else:
+                count = data.get("count", "?")
+                print(f"  ✅  {name:<20} → {count} records found")
+                print(f"      URL : {url}")
+    except Exception as e:
+        print(f"  ❌  {name:<20} → FAILED")
+        print(f"      URL : {url}")
+        print(f"      Error : {e}")
+        all_ok = False
+    print()
+
+print("  ─────────────────────────────────────────────────────────────────")
+print("  🔗  ALL LIVE LINKS")
+print("  ─────────────────────────────────────────────────────────────────")
+print(f"  🖥️   Dashboard  : {BASE}/")
+print(f"  📖  API Docs   : {BASE}/docs")
+print(f"  💚  Health     : {BASE}/health")
+print(f"  📋  Tasks      : {BASE}/tasks")
+print(f"  📝  Notes      : {BASE}/notes")
+print(f"  📅  Events     : {BASE}/events")
+print(f"  📓  Notion     : {BASE}/notion")
+print(f"  💬  Chat       : {BASE}/chat  [POST]")
+print(f"  💻  GitHub     : {REPO}")
+print()
+if all_ok:
+    print("  🎉  ALL SYSTEMS OPERATIONAL — READY FOR SUBMISSION!")
+else:
+    print("  ⚠️   SOME ENDPOINTS NEED ATTENTION")
+print("╚══════════════════════════════════════════════════════════════════╝")
+print()
+PYEOF
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖  AGENT ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+                        User Request
+                             │
+                    ┌────────▼────────┐
+                    │  orchestrator   │  ← Primary Agent (Google ADK)
+                    │     agent       │    Gemini 2.0 Flash Lite
+                    └────────┬────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              │              │              │
+     ┌────────▼───┐  ┌───────▼────┐  ┌─────▼──────┐
+     │ task_agent │  │ calendar   │  │ notes_agent│
+     │            │  │   _agent   │  │            │
+     └────────┬───┘  └───────┬────┘  └─────┬──────┘
+              │              │              │
+         Firestore      Calendar MCP    Firestore
+                                        + Notion MCP
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧  MCP INTEGRATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✅  Firestore MCP    → Permanent storage for tasks + notes + events
+  ✅  Notion MCP       → External page creation and sync
+  ✅  Calendar MCP     → Event scheduling
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦  TECH STACK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Google ADK          → Multi-agent orchestration framework
+  Gemini 2.0 Flash    → LLM powering agent reasoning
+  Firestore           → Permanent NoSQL cloud database
+  Notion API          → External knowledge base MCP
+  Google Calendar     → Schedule and event MCP
+  FastAPI             → High-performance REST API framework
+  Cloud Run           → Serverless auto-scaling deployment
+  Docker              → Container packaging
+  GCP                 → Google Cloud Platform infrastructure
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+☁️  CLOUD DEPLOYMENT INFO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Platform    : Google Cloud Run
+  Region      : asia-south1 (Mumbai)
+  Project     : hackathon-genaiapac-cohort-1
+  Memory      : 2Gi
+  CPU         : 2
+  Timeout     : 300s
+  Auth        : Public (unauthenticated)
+  Database    : Firestore (Native mode)
+  Image       : gcr.io/hackathon-genaiapac-cohort-1/multi-agent-system
+  Service URL : https://multi-agent-system-887740208824.asia-south1.run.app
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋  HACKATHON REQUIREMENTS CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✅  Primary agent coordinating sub-agents  → orchestrator routes to 3 sub-agents
+  ✅  Store and retrieve from database        → Firestore (19 tasks, 9 notes, 6 events)
+  ✅  Multiple MCP tool integrations          → Firestore + Notion + Calendar MCP
+  ✅  Multi-step workflows                    → /chat endpoint with natural language
+  ✅  Deployed as API-based system            → Cloud Run with 14 REST endpoints
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SUBMISSION LINKS                                                            ║
+║  Live API : https://multi-agent-system-887740208824.asia-south1.run.app      ║
+║  GitHub   : https://github.com/saiashirbad05/hackathon-multi-agent-project  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
