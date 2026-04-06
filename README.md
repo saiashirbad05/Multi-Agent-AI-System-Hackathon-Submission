@@ -1,4 +1,4 @@
-# Multi-Agent AI System — Hackathon Submission
+# Multi-Agent AI System — Hackathon 
 
 A production-ready multi-agent AI system built with **Google ADK**, **Firestore**, **Notion MCP**, and **Google Calendar MCP**, deployed on **Cloud Run**.
 
